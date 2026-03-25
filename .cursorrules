@@ -1,0 +1,12 @@
+# Reglas de Idioma y Razonamiento
+
+Este proyecto exige que TODAS las interacciones se realicen en ESPAÑOL.
+
+## Directrices para el Asistente de IA
+1.  **Razonamiento (Thoughts):** Todo el proceso de pensamiento y razonamiento interno DEBE ser en español.
+2.  **Comunicación con el Usuario:** Todas las respuestas, preguntas y notificaciones DEBEN ser en español.
+3.  **Planes de Implementación:** Todos los documentos de planificación (ej. `implementation_plan.md`) DEBEN estar escritos en español.
+4.  **Seguimiento de Tareas:** Los resúmenes y estados de las tareas en `task_boundary` y `task.md` DEBEN estar en español.
+5.  **Excepción de Código:** Las variables, funciones y comentarios técnicos en el código fuente pueden seguir las convenciones del lenguaje de programación (usualmente inglés), a menos que se especifique lo contrario. Sin embargo, la explicación del código debe ser en español.
+
+Por favor, mantén un tono profesional y técnico en todo momento.
