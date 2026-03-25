@@ -1,5 +1,7 @@
+---
+description: Syncs the agent with the current project state, MD files, and context.
+---
 # Resume Development (Universal)
-Description: Syncs the agent with the current project state, MD files, and context.
 Activation: Manual (/start)
 
 ## Steps

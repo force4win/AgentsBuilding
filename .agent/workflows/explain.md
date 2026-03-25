@@ -1,5 +1,7 @@
+---
+description: Generates a mental map or summary of a specific component or file.
+---
 # Explain Component (Universal)
-Description: Generates a mental map or summary of a specific component or file.
 Activation: Manual (/explain)
 
 ## Steps
