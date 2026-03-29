@@ -6,7 +6,7 @@ Activation: Manual (/start)
 
 ## Steps
 1. **Initial Scan**: Read `README.md` to identify the project mission and stack.
-2. **Context Discovery**: Search for `.md` files in `.agents/` and the root to understand active rules, skills, and roadmaps.
+2. **Context Discovery**: Search for `.md` files in `.agent/` and the root to understand active rules, skills, and roadmaps.
 3. **Context Discovery ALV**: Search for `.md` files in `.alvhere/` and load  `guideLines.md`, `handoff.md`, `PROJECT_CONTEXT.md`, `task.md`
 3. **Change Analysis**: Perform a quick scan of the most recently modified files to identify the current "work-in-progress".
 4. **Project Status Report**: Summarize for the user:
