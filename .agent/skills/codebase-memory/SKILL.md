@@ -2,7 +2,8 @@
 name: codebase-memory
 description: >-
   Queries the local codebase-memory-mcp knowledge graph (a persistent structural
-  index of the codebase) instead of grep/glob/file-by-file reading. Use it FIRST,
+  index of a codebase) instead of grep/glob/file-by-file reading, and offers to
+  index the repository when it is missing from the graph or stale. Use it FIRST,
   before any other codebase exploration, for questions about where a symbol lives,
   who calls what, the blast radius of a change, architecture and entry points,
   hotspots, dead code, inheritance, or cross-service links. Also use when indexing
@@ -12,9 +13,32 @@ description: >-
 
 # codebase-memory
 
-A local knowledge graph of the codebase (functions, classes, calls, imports,
+A local knowledge graph of a codebase (functions, classes, calls, imports,
 routes, git co-change) that answers structural questions in milliseconds. It
 replaces dozens of grep/read cycles with one query.
+
+## Step 0: confirm the repository is indexed
+
+Do this before answering any structural question, once per session. Run
+`list_projects` and match the current workspace root against `root_path`
+(comparison is on the absolute path, with forward slashes).
+
+**If the repository is missing**, do not silently fall back to grep and do not
+index it unannounced. Say it is not in the graph and offer to index it, naming
+the cost:
+
+> Este repositorio no está en el grafo de codebase-memory. Puedo indexarlo
+> (toma segundos en repos medianos, unos minutos en muy grandes, y se guarda en
+> `~/.cache/codebase-memory-mcp/`). ¿Lo indexo?
+
+If the user agrees, index it and continue. If the user declines, use normal
+exploration tools for the rest of the session and do not ask again.
+
+**If the repository is present**, run `index_status` and consider it stale when
+the working tree has moved on since the last index. Nothing re-indexes on its own
+unless `auto_index` is enabled (`codebase-memory-mcp config list`). Re-indexing is
+incremental and usually costs seconds, so prefer re-indexing over reasoning on a
+stale graph — but say that you are doing it.
 
 ## Use the graph first
 
@@ -38,9 +62,9 @@ last index, not the working tree. Treat it as a map, not as the source of truth.
 ## Use normal tools instead when
 
 - The file changed after the last index, or you need its exact current contents.
-- The target is not indexed: build output, binaries, or anything in `.gitignore`.
+- The target is not indexed: build output, binaries, or anything gitignored.
 - The question is about git history, runtime behavior, logs, or dependencies.
-- `list_projects` does not contain the repository and indexing it is not wanted.
+- The user declined indexing this repository.
 - A clean graph result means "no recorded relationship", never proof of absence.
   Before making a negative claim ("nothing calls this"), confirm with a grep.
 
@@ -66,17 +90,13 @@ quotes by doubling them: `WHERE c.name CONTAINS ''Validator''`.
 
 ## Standard workflow
 
-1. **Locate the project.** Run `list_projects` and match on `root_path`. Project
-   names are derived from the absolute path, e.g. `D:/LeapFactor/HWAY/codigo/NMC/numiv2`
+1. **Locate the project** with `list_projects`, per Step 0. Project names are
+   derived from the absolute path, e.g. `D:/LeapFactor/HWAY/codigo/NMC/numiv2`
    becomes `D-LeapFactor-HWAY-codigo-NMC-numiv2`. Every other tool needs `project`.
-2. **Check freshness.** `auto_index` is off on this machine, so nothing re-indexes
-   on its own. Run `index_status`; if the repo has changed meaningfully since the
-   last index, re-run `index_repository`. A full re-index of a 4k-file repo takes
-   about 20 seconds, so prefer re-indexing over reasoning on a stale graph.
-3. **Query broad, then narrow.** `get_graph_schema` or `get_architecture` for
+2. **Query broad, then narrow.** `get_graph_schema` or `get_architecture` for
    orientation, then `search_graph` to find exact qualified names, then
    `trace_path` / `query_graph` for relationships.
-4. **Read the real files** for the handful of paths the graph pointed you to, and
+3. **Read the real files** for the handful of paths the graph pointed you to, and
    only then edit.
 
 ## Indexing
@@ -92,7 +112,9 @@ a `status` of `degraded` means persistence lost nodes and the index should be
 rebuilt.
 
 Several repositories can share the store, which is what enables cross-repo
-queries. Index each one separately with its own `repo_path`.
+queries. Index each one separately with its own `repo_path`. When a task spans
+sibling services, check whether they are all indexed and offer to index the ones
+that are missing.
 
 ## Tools
 
@@ -101,8 +123,8 @@ queries. Index each one separately with its own `repo_path`.
 `get_graph_schema`, `get_architecture`, `search_code`, `detect_changes`,
 `manage_adr`, `ingest_traces`.
 
-For argument shapes, node labels, edge types, the supported Cypher subset, and
-worked examples, see [reference.md](reference.md).
+For argument shapes, node labels, edge types, the supported Cypher subset,
+worked examples, and installation, see [reference.md](reference.md).
 
 ## Cost control
 
