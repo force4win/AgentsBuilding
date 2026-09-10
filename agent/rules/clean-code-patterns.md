@@ -1,9 +1,39 @@
-# Clean Code Patterns (Always On)
-Description: Enforces universal software engineering principles across all languages.
+# Patrones de código limpio
 
-## Rules
-1. **DRY (Don't Repeat Yourself)**: If logic is repeated 3+ times, extract it into a reusable component or function.
-2. **SOLID Principles**: Follow single responsibility and open/closed principles whenever applicable.
-3. **Naming Conventions**: Use clear, descriptive names for variables, functions, and classes. Avoid single-letter variables except for loop indices.
-4. **Function Size**: Keep functions focused and under 40 lines of logic if possible.
-5. **Agnostic Logic**: Prioritize readability and maintainability over language-specific cleverness.
+Prioriza un cambio pequeño, legible y mantenible.
+
+## DRY
+
+Si la misma lógica aparece **tres o más** veces, extrae una función. No extraigas a la segunda copia.
+
+```text
+# Incorrecto: tres bloques idénticos de parseo de fecha
+# Correcto: una función parseDate(input) y tres llamadas
+```
+
+## Responsabilidad única
+
+Una función hace una cosa. Si el nombre necesita «y», sepárala.
+
+```text
+# Incorrecto: saveUserAndSendEmailAndLog()
+# Correcto: saveUser(); enqueueWelcomeEmail();
+```
+
+## Nombres
+
+Descriptivos. Una letra solo en índices de bucle cortos (`i`, `j`).
+
+```text
+# Incorrecto: const d = load(); const x = d.t;
+# Correcto: const invoice = loadInvoice(); const total = invoice.total;
+```
+
+## Tamaño
+
+Funciones de lógica preferiblemente bajo ~40 líneas. Si crecen, extrae pasos con nombres que expliquen el «qué».
+
+## No aplicar
+
+- Micro-extracciones que empeoran la lectura.
+- Refactors masivos no pedidos (ver `scope-discipline`).

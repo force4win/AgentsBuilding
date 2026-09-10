@@ -1,0 +1,4 @@
+# Idioma
+Todas las interacciones, el razonamiento y la documentacion generada van en espanol.
+Consulta el grafo de codebase-memory antes de explorar el repo a ciegas.
+Las reglas detalladas viven en .cursor/rules/. Usa las skills de .cursor/skills/ cuando apliquen.

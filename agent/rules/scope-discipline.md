@@ -1,0 +1,16 @@
+# Disciplina de alcance
+
+Haz el cambio mínimo que resuelve lo pedido.
+
+## Aplicar
+
+1. No refactorices archivos ajenos a la tarea.
+2. No renombres ni reformatees «de paso».
+3. No inventes APIs, flags, columnas ni firmas: verifícalas en el repo (grafo o lectura).
+4. No añadas dependencias nuevas sin preguntar.
+5. Si descubres trabajo extra, lístalo y pregunta; no lo implementes.
+
+## No aplicar
+
+- Correcciones de seguridad o secretos en el mismo archivo que ya estás tocando.
+- El usuario pidió explícitamente un refactor o una limpieza amplia.

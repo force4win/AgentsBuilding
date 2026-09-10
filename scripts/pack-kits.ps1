@@ -10,16 +10,57 @@ $Root = Split-Path -Parent $PSScriptRoot
 $Src = Join-Path $Root 'agent'
 $Kits = Join-Path $Root 'kits'
 
-function Get-SkillNameFromFile {
+$AlwaysOnRules = @(
+    'language-policy.md'
+    'security-guard.md'
+    'codebase-memory-first.md'
+    'clean-code-patterns.md'
+)
+
+function Get-Frontmatter {
     param([string]$Path)
     $raw = Get-Content -LiteralPath $Path -Raw -Encoding UTF8
     if ($raw -notmatch '(?ms)\A---\s*\r?\n(.*?)\r?\n---') {
         throw "Sin frontmatter YAML: $Path"
     }
-    if ($Matches[1] -notmatch '(?m)^name:\s*([a-z0-9]+(?:-[a-z0-9]+)*)\s*$') {
+    return $Matches[1]
+}
+
+function Get-SkillNameFromFile {
+    param([string]$Path)
+    $fm = Get-Frontmatter $Path
+    if ($fm -notmatch '(?m)^name:\s*([a-z0-9]+(?:-[a-z0-9]+)*)\s*$') {
         throw "name invalido o ausente (kebab-case requerido): $Path"
     }
     return $Matches[1]
+}
+
+function Get-SkillDescription {
+    param([string]$Path)
+    $fm = Get-Frontmatter $Path
+    if ($fm -match '(?m)^description:\s*>-?\s*$') {
+        $lines = @()
+        $started = $false
+        foreach ($line in ($fm -split '\r?\n')) {
+            if (-not $started) {
+                if ($line -match '^description:\s*>-?\s*$') { $started = $true }
+                continue
+            }
+            if ($line -match '^\s+\S') {
+                $lines += $line.Trim()
+            }
+            elseif ($line -match '^\s*$') { continue }
+            else { break }
+        }
+        return (($lines -join ' ') -replace '\s+', ' ').Trim()
+    }
+    if ($fm -match '(?m)^description:\s*>-?\s+(\S.*)$') {
+        return $Matches[1].Trim()
+    }
+    if ($fm -match '(?m)^description:\s+["'']?(.+?)["'']?\s*$') {
+        return $Matches[1].Trim()
+    }
+    throw "description ausente: $Path"
 }
 
 function Assert-Skills {
@@ -32,6 +73,39 @@ function Assert-Skills {
         $name = Get-SkillNameFromFile $skillFile
         if ($name -ne $_.Name) {
             throw "name '$name' no coincide con carpeta '$($_.Name)'"
+        }
+        $desc = Get-SkillDescription $skillFile
+        if ([string]::IsNullOrWhiteSpace($desc)) {
+            throw "description vacia: $skillFile"
+        }
+        if ($desc.Length -gt 1024) {
+            throw "description > 1024 ($($desc.Length)): $skillFile"
+        }
+        $lineCount = @(Get-Content -LiteralPath $skillFile).Count
+        if ($lineCount -gt 500) {
+            Write-Warning "SKILL.md tiene $lineCount lineas (>500): $skillFile"
+        }
+        $skillDir = $_.FullName
+        $body = Get-Content -LiteralPath $skillFile -Raw -Encoding UTF8
+        [regex]::Matches($body, '\[[^\]]*\]\(([^)]+)\)') | ForEach-Object {
+            $href = $_.Groups[1].Value.Trim()
+            if ($href -match '^(https?:|mailto:|#|file:)') { return }
+            $rel = ($href -split '#')[0]
+            if ([string]::IsNullOrWhiteSpace($rel)) { return }
+            $resolved = [System.IO.Path]::GetFullPath((Join-Path $skillDir $rel))
+            if (-not (Test-Path -LiteralPath $resolved)) {
+                throw "Enlace roto '$href' en $skillFile"
+            }
+        }
+    }
+}
+
+function Assert-RuleMeta {
+    param($Meta)
+    $rulesSrc = Join-Path $Src 'rules'
+    Get-ChildItem -LiteralPath $rulesSrc -File -Filter '*.md' | Where-Object { $_.Name -ne 'README.md' } | ForEach-Object {
+        if (-not $Meta.ContainsKey($_.Name)) {
+            throw "Falta metadatos de rule para $($_.Name). Anade una entrada en pack-kits.ps1"
         }
     }
 }
@@ -64,34 +138,59 @@ function Get-RuleBody {
 
 $RuleMeta = @{
     'language-policy.md' = @{
-        Description = 'Espanol obligatorio en interaccion, razonamiento y documentacion generada.'
+        Description = 'Espanol obligatorio en interaccion, razonamiento y documentacion generada'
         AlwaysApply = $true
         Globs       = $null
     }
     'security-guard.md' = @{
-        Description = 'No filtrar secretos, PII ni modificar configs sensibles sin confirmacion'
+        Description = 'No filtrar secretos ni PII; confirmar antes de tocar configs sensibles'
+        AlwaysApply = $true
+        Globs       = $null
+    }
+    'codebase-memory-first.md' = @{
+        Description = 'Consultar el grafo codebase-memory antes de grep/glob o lectura exploratoria'
+        AlwaysApply = $true
+        Globs       = $null
+    }
+    'clean-code-patterns.md' = @{
+        Description = 'DRY, responsabilidad unica, nombres claros y funciones pequenas'
         AlwaysApply = $true
         Globs       = $null
     }
     'testing-policy.md' = @{
         Description = 'Retrasa tests de negocio; no retrasa tests de autenticacion ni autorizacion'
-        AlwaysApply = $true
+        AlwaysApply = $false
         Globs       = $null
     }
     'documentation-standards.md' = @{
-        Description = 'Documentar proposito, APIs exportadas y el porqué de logica no obvia'
-        AlwaysApply = $true
+        Description = 'Documentar el porque y contratos no evidentes; no parafrasear codigo'
+        AlwaysApply = $false
         Globs       = $null
     }
-    'clean-code-patterns.md' = @{
-        Description = 'DRY, SOLID, nombres claros y funciones pequenas'
-        AlwaysApply = $true
+    'git-safety.md' = @{
+        Description = 'No add/commit/push sin peticion; nunca force en main; no tocar git config global'
+        AlwaysApply = $false
+        Globs       = $null
+    }
+    'scope-discipline.md' = @{
+        Description = 'Cambio minimo; sin refactor no pedido ni APIs inventadas'
+        AlwaysApply = $false
+        Globs       = $null
+    }
+    'stack-conventions.md' = @{
+        Description = 'Respetar gestor de paquetes, linter y formatter del repo'
+        AlwaysApply = $false
         Globs       = $null
     }
     'Guia_Diseno_UX_Frutiger_Aero.md' = @{
         Description = 'Sistema de diseno Frutiger Aero para UI frontend'
         AlwaysApply = $false
         Globs       = '**/*.{css,scss,html,tsx,jsx,vue,svelte}'
+    }
+    'sql-migration-safety.md' = @{
+        Description = 'Migraciones SQL reversibles; sin DELETE/DROP sin WHERE ni confirmacion'
+        AlwaysApply = $false
+        Globs       = '**/*.sql,**/migrations/**'
     }
 }
 
@@ -129,6 +228,8 @@ $Body
 
 Write-Host 'Validando skills...'
 Assert-Skills
+Write-Host 'Validando rules...'
+Assert-RuleMeta $RuleMeta
 
 if (Test-Path -LiteralPath $Kits) {
     Remove-Item -LiteralPath $Kits -Recurse -Force
@@ -149,11 +250,8 @@ Copy-Tree (Join-Path $Src 'skills') (Join-Path $ocOpen 'skills')
 
 Write-Host 'Empaquetando rules...'
 $rulesSrc = Join-Path $Src 'rules'
-Get-ChildItem -LiteralPath $rulesSrc -File -Filter '*.md' | ForEach-Object {
+Get-ChildItem -LiteralPath $rulesSrc -File -Filter '*.md' | Where-Object { $_.Name -ne 'README.md' } | ForEach-Object {
     $meta = $RuleMeta[$_.Name]
-    if (-not $meta) {
-        throw "Falta metadatos de rule para $($_.Name). Anade una entrada en pack-kits.ps1"
-    }
     $body = Get-RuleBody $_.FullName
     $agText = (Build-RuleFrontmatter $meta) + $body
     $cuText = (Build-RuleFrontmatter $meta -Mdc) + $body
@@ -178,17 +276,35 @@ Get-ChildItem -LiteralPath $wfSrc -File -Filter '*.md' | ForEach-Object {
 $commandsIndex = @(
     '- `/start` — retomar contexto del proyecto'
     '- `/save` — persistir handoff en `.alvhere/`'
-    '- `/explain` — explicar un componente'
+    '- `/explain` — explicar un componente (grafo primero)'
+    '- `/index` — indexar o refrescar codebase-memory'
+    '- `/impacto` — radio de impacto de un cambio'
+    '- `/review` — revisar el diff local (sin commit)'
+    '- `/test` — ejecutar la suite del repo'
+    '- `/debug` — depurar con hipotesis y evidencia'
+    '- `/adr` — registrar una decision de arquitectura'
     '- `/ship-commit-message` — proponer commit (sin ejecutar salvo que pidas)'
     '- `/audit-vulnerabilidades` — revision defensiva'
     '- `/init-ia-project` — crear `.alvhere/` si no existe `AlvWasHere.md`'
 ) -join "`n"
 
+$lazyRules = @(
+    'documentation-standards.md'
+    'testing-policy.md'
+    'git-safety.md'
+    'scope-discipline.md'
+    'stack-conventions.md'
+    'sql-migration-safety.md'
+    'Guia_Diseno_UX_Frutiger_Aero.md'
+)
+
+$lazyBlock = ($lazyRules | ForEach-Object { "- ``@.opencode/rules/$_``" }) -join "`n"
+
 Write-Utf8 (Join-Path $cuRoot 'AGENTS.md') @"
 # Instrucciones del proyecto (Cursor)
 
 - Habla y razona en **espanol**.
-- Las reglas persistentes estan en `.cursor/rules/` (``.mdc``).
+- Always-on: idioma, seguridad, codebase-memory-first, clean code (``.cursor/rules/*.mdc``).
 - Las skills estan en `.cursor/skills/<nombre>/SKILL.md`. Cargalas cuando el trabajo coincida con su ``description``.
 - Los workflows se invocan con `/` desde `.cursor/commands/`:
 
@@ -200,6 +316,7 @@ $commandsIndex
 Write-Utf8 (Join-Path $cuRoot '.cursorrules') @"
 # Idioma
 Todas las interacciones, el razonamiento y la documentacion generada van en espanol.
+Consulta el grafo de codebase-memory antes de explorar el repo a ciegas.
 Las reglas detalladas viven en `.cursor/rules/`. Usa las skills de `.cursor/skills/` cuando apliquen.
 "@
 
@@ -207,7 +324,7 @@ Write-Utf8 (Join-Path $ocRoot 'AGENTS.md') @"
 # Instrucciones del proyecto (OpenCode)
 
 - Habla y razona en **espanol**.
-- ``opencode.json`` inyecta las rules de `.opencode/rules/`.
+- ``opencode.json`` inyecta solo las rules always-on (idioma, seguridad, codebase-memory-first, clean code).
 - Carga skills con la herramienta ``skill`` desde `.opencode/skills/`.
 - Commands personalizados:
 
@@ -215,21 +332,28 @@ $commandsIndex
 
 - No confundas ``/init-ia-project`` (sistema ALV) con el ``/init`` nativo de OpenCode.
 - Contexto de sesion (si existe): `.alvhere/task.md`, `handoff.md`, `PROJECT_CONTEXT.md`, `guideLines.md`.
+
+## Rules bajo demanda
+
+CRITICAL: no cargues estos archivos por adelantado. Cuando la tarea lo requiera, usa Read:
+
+$lazyBlock
 "@
 
-Write-Utf8 (Join-Path $ocRoot 'opencode.json') @'
+$ocInstructions = ($AlwaysOnRules | ForEach-Object { '    ".opencode/rules/' + $_ + '"' }) -join ",`n"
+Write-Utf8 (Join-Path $ocRoot 'opencode.json') @"
 {
-  "$schema": "https://opencode.ai/config.json",
-  "instructions": [
-    ".opencode/rules/*.md"
+  `"`$schema`": `"https://opencode.ai/config.json`",
+  `"instructions`": [
+$ocInstructions
   ],
-  "permission": {
-    "skill": {
-      "*": "allow"
+  `"permission`": {
+    `"skill`": {
+      `"*`": `"allow`"
     }
   }
 }
-'@
+"@
 
 Write-Utf8 (Join-Path $agRoot 'COMO_INSTALAR.md') (New-KitReadme 'Kit Antigravity' @'
 ## Instalar
@@ -248,18 +372,7 @@ Get-ChildItem .\kits\antigravity -Force |
   Copy-Item -Recurse -Force -Destination D:\ruta\de\tu-proyecto
 ```
 
-Debe quedar:
-
-```
-tu-proyecto/
-  .agents/
-    rules/
-    skills/
-    workflows/
-```
-
-Antigravity carga `.agents/` (tambien acepta el nombre antiguo `.agent/`).
-Workflows: `/start`, `/save`, `/explain`, `/ship-commit-message`, `/audit-vulnerabilidades`, `/init-ia-project`.
+Debe quedar `.agents/rules`, `.agents/skills`, `.agents/workflows`.
 '@)
 
 Write-Utf8 (Join-Path $cuRoot 'COMO_INSTALAR.md') (New-KitReadme 'Kit Cursor' @'
@@ -269,27 +382,7 @@ Write-Utf8 (Join-Path $cuRoot 'COMO_INSTALAR.md') (New-KitReadme 'Kit Cursor' @'
 .\scripts\install-kit.ps1 -Ide cursor -Destination D:\ruta\de\tu-proyecto
 ```
 
-O a mano (el `-Force` es obligatorio para copiar `.cursor`):
-
-```powershell
-Get-ChildItem .\kits\cursor -Force |
-  Where-Object Name -ne COMO_INSTALAR.md |
-  Copy-Item -Recurse -Force -Destination D:\ruta\de\tu-proyecto
-```
-
-Debe quedar:
-
-```
-tu-proyecto/
-  .cursor/
-    rules/      # *.mdc
-    skills/
-    commands/   # slash commands
-  AGENTS.md
-  .cursorrules
-```
-
-En el chat, escribe `/` para ver los workflows. Reinicia Cursor si no aparecen.
+Debe quedar `.cursor/` (rules, skills, commands), `AGENTS.md` y `.cursorrules`.
 '@)
 
 Write-Utf8 (Join-Path $ocRoot 'COMO_INSTALAR.md') (New-KitReadme 'Kit OpenCode' @'
@@ -299,27 +392,7 @@ Write-Utf8 (Join-Path $ocRoot 'COMO_INSTALAR.md') (New-KitReadme 'Kit OpenCode' 
 .\scripts\install-kit.ps1 -Ide opencode -Destination D:\ruta\de\tu-proyecto
 ```
 
-O a mano (el `-Force` es obligatorio para copiar `.opencode`):
-
-```powershell
-Get-ChildItem .\kits\opencode -Force |
-  Where-Object Name -ne COMO_INSTALAR.md |
-  Copy-Item -Recurse -Force -Destination D:\ruta\de\tu-proyecto
-```
-
-Debe quedar:
-
-```
-tu-proyecto/
-  .opencode/
-    rules/
-    skills/
-    commands/
-  AGENTS.md
-  opencode.json
-```
-
-Skills: herramienta `skill`. Commands: `/start`, `/save`, etc.
+Debe quedar `.opencode/`, `AGENTS.md` y `opencode.json` (solo 4 rules always-on en instructions).
 `/init-ia-project` no sustituye al `/init` nativo de OpenCode.
 '@)
 

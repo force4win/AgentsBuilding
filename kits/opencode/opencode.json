@@ -1,0 +1,14 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    ".opencode/rules/language-policy.md",
+    ".opencode/rules/security-guard.md",
+    ".opencode/rules/codebase-memory-first.md",
+    ".opencode/rules/clean-code-patterns.md"
+  ],
+  "permission": {
+    "skill": {
+      "*": "allow"
+    }
+  }
+}

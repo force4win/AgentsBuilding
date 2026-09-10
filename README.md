@@ -32,9 +32,9 @@ Get-ChildItem .\kits\cursor -Force |
 
 ## Que hay dentro
 
-- **Rules:** idioma (espanol), seguridad, testing tardio (con excepcion de auth), documentacion, clean code, guia UX Frutiger Aero.
-- **Skills:** arquitectura, bases de datos, frontend, Go, Java/Spring, Git, JWT, seguridad general, UX mobile, cuna de ideas, creador de habilidades, codebase-memory, PaymentMethodAPI, etc.
-- **Workflows / commands:** `/start`, `/save`, `/explain`, `/ship-commit-message`, `/audit-vulnerabilidades`, `/init-ia-project`.
+- **Rules always-on:** idioma, seguridad, codebase-memory primero, clean code. El resto (git, alcance, stack, tests, docs, SQL, UX) es condicional. Detalle: `agent/rules/README.md`.
+- **Skills:** Java/Spring, .NET, TypeScript/Node, Python, Go, Docker/K8s, PowerShell, APIs, CI/CD, review, testing, JWT, bases de datos, frontend, etc.
+- **Workflows:** `/start`, `/save`, `/explain`, `/index`, `/impacto`, `/review`, `/test`, `/debug`, `/adr`, `/ship-commit-message`, `/audit-vulnerabilidades`, `/init-ia-project`.
 
 ## Editar y regenerar
 

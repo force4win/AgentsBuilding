@@ -1,9 +1,26 @@
-# Development Policy: Late Testing (Always On)
-Description: Prioritizes feature completion and structural integrity over early testing.
+# Política de testing
 
-## Rules
-1. **No Early Tests**: No escribas tests unitarios o de integración durante la fase inicial de una feature de negocio.
-2. **Compilation Focus**: En implementación, la validación mínima es que el código **compile y sea sintácticamente correcto**.
-3. **Refactoring Tolerance**: La estructura puede ser fluida durante el primer 80% del proyecto.
-4. **Final Testing Phase**: Los tests de negocio se escriben cuando la funcionalidad núcleo está estable y el roadmap está ~90% completo.
-5. **Excepción de seguridad:** Sí escribe tests cuando el cambio cubre autenticación, autorización, JWT, validación de entrada o control de acceso. Esos tests no se postergan.
+Durante la implementación de una feature de negocio, prioriza que compile y sea correcto. Los tests de negocio llegan al final del roadmap.
+
+## Fase de implementación (~80%)
+
+- No escribas suites unitarias/integración de la feature de negocio todavía.
+- Valida con compilación, tipos y una prueba manual breve si aplica.
+- La estructura puede cambiar; no ancles tests a APIs inestables.
+
+## Fase de testing (~90% del roadmap)
+
+Empieza cuando el flujo núcleo está estable. Entonces:
+
+1. Detecta cómo corre la suite en **este** repo (no inventes el comando).
+2. Cubre el camino feliz y 1-2 fallos de negocio.
+3. Añade tests de borde solo si el riesgo lo justifica.
+
+## Excepción (no se postergan)
+
+Escribe tests **ya** si el cambio toca autenticación, autorización, JWT, validación de entrada o control de acceso.
+
+## No aplicar
+
+- Proyectos cuyo Definition of Done del usuario pide tests desde el primer commit: respeta al usuario.
+- Regresiones que estás arreglando: un test que reproduce el bug **sí** va primero.

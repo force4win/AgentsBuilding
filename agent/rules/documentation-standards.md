@@ -1,8 +1,16 @@
-# Documentation Standards (Always On)
-Description: Ensures every piece of logic is properly documented for long-term maintenance.
+# Estándares de documentación
 
-## Rules
-1. **Header Comments**: Every file should have a clear purpose description at the top.
-2. **Exported Members**: All exported functions/classes must have a docstring or comment describing inputs, outputs, and side effects.
-3. **Complex Logic**: Add inline comments explaining "why" for non-obvious code sections.
-4. **README Updates**: If a significant feature is added, update the project README.md accordingly.
+Documenta el **porqué** y los contratos que el código no deja ver. No parafrasees lo obvio.
+
+## Aplicar
+
+1. Comenta decisiones no evidentes (límites, workarounds, invariantes).
+2. En APIs públicas: entradas, salidas, errores y efectos secundarios si no se infieren del tipo.
+3. Si cambia la misión, el stack o el arranque del proyecto, actualiza `README.md`.
+4. Prefiere un README y contratos (OpenAPI, JSDoc/JavaDoc donde el repo ya los usa) frente a headers en cada archivo.
+
+## No aplicar
+
+- Comentario de encabezado en cada archivo «por política».
+- Docstrings que repiten el nombre de la función (`// Gets the user`).
+- Documentar getters triviales o código autodocumentado.

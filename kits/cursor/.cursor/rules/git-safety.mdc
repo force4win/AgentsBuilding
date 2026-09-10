@@ -1,0 +1,20 @@
+---
+description: No add/commit/push sin peticion; nunca force en main; no tocar git config global
+alwaysApply: false
+---
+# Seguridad Git
+
+No mutes el historial ni el remoto sin una petición explícita.
+
+## Aplicar
+
+1. No ejecutes `git add`, `git commit`, `git push`, `git reset` ni `git rebase` salvo que el usuario lo pida con esas palabras (o un workflow `/ship-commit-message` **después** de confirmar).
+2. Nunca `--force` / `--force-with-lease` en `main` o `master`.
+3. No cambies `git config` global.
+4. Antes del primer commit, verifica `.gitignore` (`.env`, secretos, `bin/`, `node_modules/`).
+5. Si hay conflictos, explica archivos y propone estrategia; no resuelvas a ciegas.
+
+## No aplicar
+
+- Consultas de solo lectura: `status`, `diff`, `log`, `branch`.
+- Mensajes de commit **propuestos** en el chat, sin ejecutar git.
